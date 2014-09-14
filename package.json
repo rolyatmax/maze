@@ -1,0 +1,26 @@
+{
+  "name": "maze",
+  "version": "0.0.1",
+  "description": "Generate a maze and solve it with RL",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git@github.com:rolyatmax/maze.git"
+  },
+  "keywords": ["maze", "reinforcement", "learning"],
+  "author": "Taylor Baldwin",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/rolyatmax/maze/issues"
+  },
+  "homepage": "https://github.com/rolyatmax/maze",
+  "devDependencies": {
+    "browserify": "4.1.9"
+  },
+  "dependencies": {
+    "jquery": "2.1.1",
+    "underscore": "1.7.0"
+  }
+}
