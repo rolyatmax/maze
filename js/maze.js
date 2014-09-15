@@ -1,39 +1,73 @@
 var _ = require('underscore');
+var helpers = require('./helpers');
 
-var DELIMITER = '|';
 
 function Maze(grid) {
     this.grid = grid;
     this.stack = [];
 
-    this.connections = {};
-    var x = grid.w;
-    while (x--) {
-        var y = grid.h;
-        while (y--) {
-            this.connections[x + DELIMITER + y] = [];
-        }
-    }
+    this.connections = helpers.createDotDict(grid.w, grid.h);
+    this.draw = this.draw.bind(this, this.grid.ctx);
+
+    // give the screen a chance to draw
+    this.grid.canvas.classList.add('hide');
+    var onFinish = _.delay.bind(_, this.onFinish.bind(this), 300);
+    _.defer(this.make.bind(this, this.onProgress, onFinish));
 }
 
 Maze.prototype = {
-    make: function() {
+    onFinish: function() {
+        var progressContainer = document.querySelector('.loading');
+        progressContainer.parentElement.removeChild(progressContainer);
+        this.draw();
+        this.grid.canvas.classList.remove('hide');
+    },
+
+    onProgress: function(perc) {
+        document.querySelector('.progress').style.width = perc + '%';
+    },
+
+    draw: function(ctx) {
+        var spacing = this.grid.spacing;
+        _.each(this.connections, function(ends, start) {
+            var startPos = helpers.getCoords(start);
+            ends.forEach(function(end) {
+                var endPos = helpers.getCoords(end);
+                ctx.strokeStyle = '#555';
+                ctx.beginPath();
+                ctx.moveTo(startPos.x * spacing + 1, startPos.y * spacing + 1);
+                ctx.lineTo(endPos.x * spacing + 1, endPos.y * spacing + 1);
+                ctx.stroke();
+            });
+        });
+    },
+
+    make: function(updateCb, finishCb) {
         if (this.made) {
             throw 'Maze already generated';
         }
-        var start = nodeKey(0, 0);
+        var start = helpers.nodeKey(0, 0);
         var current = start;
-        while (!this.isFinished()) {
-            var connection = this.pickMove(current);
-            var next = connection[0];
-            current = connection[1];
-            if (next) {
-                this.createConnection(next, current);
-                current = next;
-            }
-        }
+        var isFinished = this.isFinished.bind(this, updateCb);
+
+        this.drawPath(isFinished, finishCb, current);
         this.made = true;
-        return this.connections;
+    },
+
+    drawPath: function(isFinished, finishCb, current) {
+        if (isFinished()) {
+            return finishCb();
+        }
+
+        var connection = this.pickMove(current);
+        var next = connection[0];
+        current = connection[1];
+        if (next) {
+            this.createConnection(next, current);
+            current = next;
+        }
+        var drawPath = this.drawPath.bind(this, isFinished, finishCb, current);
+        _.defer(drawPath);
     },
 
     createConnection: function(next, current) {
@@ -54,33 +88,21 @@ Maze.prototype = {
     },
 
     getOptions: function(node) {
-        return _.filter(getAdjacentNodes(node), function(option) {
+        return _.filter(helpers.getAdjacentNodes(node), function(option) {
             return this.grid.isInGrid(option) && !this.connections[option].length;
         }.bind(this));
     },
 
-    isFinished: function() {
+    isFinished: function(updateCb) {
         var unvisited = _.filter(this.connections, function(nodeConnections) {
             return nodeConnections.length === 0;
         });
-        return unvisited.length === 0;
+        var finished = unvisited.length === 0;
+        var total = this.grid.w * this.grid.h;
+        var perc = finished ? 100 : (100 * (total - unvisited.length) / total) | 0;
+        if (updateCb) updateCb(perc);
+        return finished;
     }
-};
-
-var nodeKey = function(x, y) {
-    return x + DELIMITER + y;
-};
-
-var getAdjacentNodes = function(node) {
-    var coords = node.split(DELIMITER);
-    var x = +coords[0];
-    var y = +coords[1];
-    return [
-        nodeKey(x - 1, y),
-        nodeKey(x + 1, y),
-        nodeKey(x, y - 1),
-        nodeKey(x, y + 1)
-    ];
 };
 
 module.exports = Maze;

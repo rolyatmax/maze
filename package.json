@@ -20,7 +20,6 @@
     "browserify": "4.1.9"
   },
   "dependencies": {
-    "jquery": "2.1.1",
     "underscore": "1.7.0"
   }
 }

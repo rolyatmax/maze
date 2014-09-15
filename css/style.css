@@ -16,3 +16,43 @@ h1 {
     line-height: 1.5em;
     border-bottom: 1px solid #333;
 }
+
+#maze {
+    margin-top: 40px;
+    width: 100%;
+    position: relative;
+}
+
+#maze canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
+    -webkit-transition: opacity 200ms linear;
+    opacity: 1;
+}
+
+#maze canvas.hide {
+    opacity: 0;
+    /*-webkit-transition: none;*/
+}
+
+.loading h2 {
+    text-align: center;
+    font-size: 24px;
+    margin: 20px;
+}
+
+.loading .progress-container {
+    margin-top: 50px;
+    background-color: #ddd;
+    height: 3px;
+    width: 60%;
+    margin: auto;
+}
+
+.progress-container .progress {
+    width: 0;
+    height: 100%;
+    background-color: #666;
+    -webkit-transition: width 300ms ease;
+}

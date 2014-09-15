@@ -1,14 +1,15 @@
-var $ = require('jquery');
 var _ = require('underscore');
 
 var Grid = require('./grid');
 var Maze = require('./maze');
 
-$(function() {
-    var grid = new Grid(5, 10);
+var start = function() {
+    var $maze = document.querySelector('#maze');
+    var grid = new Grid(40, 30, $maze);
     var maze = new Maze(grid);
-    maze.make();
 
     window.maze = maze;
     window._ = _;
-});
+};
+
+window.onload = start;
