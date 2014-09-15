@@ -6,7 +6,7 @@ var Solver = require('./solver');
 
 
 var start = function() {
-    var grid = new Grid(10, 5, document.querySelector('#maze'));
+    var grid = new Grid(15, 8, document.querySelector('#maze'));
     var maze = new Maze(grid);
     var solver = new Solver(maze);
 

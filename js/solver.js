@@ -22,6 +22,7 @@ function Solver(maze) {
 
 Solver.prototype = {
     start: function() {
+        this.startTime = this.startTime || Date.now();
         this.path = [];
         this.current = helpers.nodeKey(0, 0);
         this.play();
@@ -37,12 +38,12 @@ Solver.prototype = {
         if (next === this.end) {
             return this.completedMaze();
         }
-
-        _.defer(this.play.bind(this));
+        this.play();
+        // _.defer(this.play.bind(this));
     },
 
     completedMaze: function() {
-        console.log(this.runs + ': Completed Maze in ' + this.path.length + ' steps!');
+        console.log(this.runs + ': Completed Maze in ' + this.path.length + ' steps');
         this.runs += 1;
 
         this.scores.push(this.path.length);
@@ -51,8 +52,9 @@ Solver.prototype = {
         // stop when the last five scores are the same
         if (this.runs > 10 && lastUniqScores.length === 1) {
             console.log('Converged on optimal solution in ' + lastUniqScores[0] + ' steps');
+            console.log('Performance (ms):', Date.now() - this.startTime);
         } else {
-            this.start();
+            _.delay(this.start.bind(this), 100);
         }
     },
 
