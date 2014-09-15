@@ -5,15 +5,6 @@ var DELIMITER = '|';
 function Grid(w, h) {
     this.w = w;
     this.h = h;
-
-    this.connections = {};
-    var x = w;
-    while (x--) {
-        var y = h;
-        while (y--) {
-            this.connections[x + DELIMITER + y] = [];
-        }
-    }
 }
 
 Grid.prototype = {

@@ -1,4 +1,4 @@
-(function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({"/Users/Tb/Sites/maze/js/grid.js":[function(require,module,exports){
+(function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({"/Users/taylorbaldwin/Sites/maze/js/grid.js":[function(require,module,exports){
 var _ = require('underscore');
 
 var DELIMITER = '|';
@@ -6,15 +6,6 @@ var DELIMITER = '|';
 function Grid(w, h) {
     this.w = w;
     this.h = h;
-
-    this.connections = {};
-    var x = w;
-    while (x--) {
-        var y = h;
-        while (y--) {
-            this.connections[x + DELIMITER + y] = [];
-        }
-    }
 }
 
 Grid.prototype = {
@@ -41,7 +32,7 @@ Grid.prototype = {
 
 module.exports = Grid;
 
-},{"underscore":"/Users/Tb/Sites/maze/node_modules/underscore/underscore.js"}],"/Users/Tb/Sites/maze/js/main.js":[function(require,module,exports){
+},{"underscore":"/Users/taylorbaldwin/Sites/maze/node_modules/underscore/underscore.js"}],"/Users/taylorbaldwin/Sites/maze/js/main.js":[function(require,module,exports){
 var $ = require('jquery');
 var _ = require('underscore');
 
@@ -49,48 +40,103 @@ var Grid = require('./grid');
 var Maze = require('./maze');
 
 $(function() {
-    window.grid = new Grid(50, 100);
+    var grid = new Grid(5, 10);
+    var maze = new Maze(grid);
+    maze.make();
+
+    window.maze = maze;
+    window._ = _;
 });
 
-},{"./grid":"/Users/Tb/Sites/maze/js/grid.js","./maze":"/Users/Tb/Sites/maze/js/maze.js","jquery":"/Users/Tb/Sites/maze/node_modules/jquery/dist/jquery.js","underscore":"/Users/Tb/Sites/maze/node_modules/underscore/underscore.js"}],"/Users/Tb/Sites/maze/js/maze.js":[function(require,module,exports){
+},{"./grid":"/Users/taylorbaldwin/Sites/maze/js/grid.js","./maze":"/Users/taylorbaldwin/Sites/maze/js/maze.js","jquery":"/Users/taylorbaldwin/Sites/maze/node_modules/jquery/dist/jquery.js","underscore":"/Users/taylorbaldwin/Sites/maze/node_modules/underscore/underscore.js"}],"/Users/taylorbaldwin/Sites/maze/js/maze.js":[function(require,module,exports){
 var _ = require('underscore');
 
 var DELIMITER = '|';
 
 function Maze(grid) {
     this.grid = grid;
+    this.stack = [];
+
+    this.connections = {};
+    var x = grid.w;
+    while (x--) {
+        var y = grid.h;
+        while (y--) {
+            this.connections[x + DELIMITER + y] = [];
+        }
+    }
 }
 
 Maze.prototype = {
+    make: function() {
+        if (this.made) {
+            throw 'Maze already generated';
+        }
+        var start = nodeKey(0, 0);
+        var current = start;
+        while (!this.isFinished()) {
+            var connection = this.pickMove(current);
+            var next = connection[0];
+            current = connection[1];
+            if (next) {
+                this.createConnection(next, current);
+                current = next;
+            }
+        }
+        this.made = true;
+        return this.connections;
+    },
 
-};
+    createConnection: function(next, current) {
+        this.connections[next] = this.connections[next] || [];
+        this.connections[current] = this.connections[current] || [];
+        this.connections[next].push(current);
+        this.connections[current].push(next);
+    },
 
-var generatePath = function(grid, start, isFinishedFn, minSegments) {
-    var segCount = 0;
-    var connections = {};
-    var draw = function(start, minSegments) {
-        var coords = start.split(DELIMITER);
-        var x = +coords[0];
-        var y = +coords[1];
-        var options = [
-            nodeKey(x - 1, y),
-            nodeKey(x + 1, y),
-            nodeKey(x, y - 1),
-            nodeKey(x, y + 1)
-        ];
-        options = _.filterBy(options, grid.isInGrid.bind(grid));
+    pickMove: function(current) {
+        var options = this.getOptions(current);
+        if (options.length) {
+            this.stack.push(current);
+            var choice = _.sample(options);
+            return [choice, current];
+        }
+        return this.pickMove(this.stack.pop());
+    },
 
-    };
+    getOptions: function(node) {
+        return _.filter(getAdjacentNodes(node), function(option) {
+            return this.grid.isInGrid(option) && !this.connections[option].length;
+        }.bind(this));
+    },
+
+    isFinished: function() {
+        var unvisited = _.filter(this.connections, function(nodeConnections) {
+            return nodeConnections.length === 0;
+        });
+        return unvisited.length === 0;
+    }
 };
 
 var nodeKey = function(x, y) {
     return x + DELIMITER + y;
 };
 
+var getAdjacentNodes = function(node) {
+    var coords = node.split(DELIMITER);
+    var x = +coords[0];
+    var y = +coords[1];
+    return [
+        nodeKey(x - 1, y),
+        nodeKey(x + 1, y),
+        nodeKey(x, y - 1),
+        nodeKey(x, y + 1)
+    ];
+};
 
 module.exports = Maze;
 
-},{"underscore":"/Users/Tb/Sites/maze/node_modules/underscore/underscore.js"}],"/Users/Tb/Sites/maze/node_modules/jquery/dist/jquery.js":[function(require,module,exports){
+},{"underscore":"/Users/taylorbaldwin/Sites/maze/node_modules/underscore/underscore.js"}],"/Users/taylorbaldwin/Sites/maze/node_modules/jquery/dist/jquery.js":[function(require,module,exports){
 /*!
  * jQuery JavaScript Library v2.1.1
  * http://jquery.com/
@@ -9282,7 +9328,7 @@ return jQuery;
 
 }));
 
-},{}],"/Users/Tb/Sites/maze/node_modules/underscore/underscore.js":[function(require,module,exports){
+},{}],"/Users/taylorbaldwin/Sites/maze/node_modules/underscore/underscore.js":[function(require,module,exports){
 //     Underscore.js 1.7.0
 //     http://underscorejs.org
 //     (c) 2009-2014 Jeremy Ashkenas, DocumentCloud and Investigative Reporters & Editors
@@ -10699,4 +10745,4 @@ return jQuery;
   }
 }.call(this));
 
-},{}]},{},["/Users/Tb/Sites/maze/js/main.js"]);
+},{}]},{},["/Users/taylorbaldwin/Sites/maze/js/main.js"]);
