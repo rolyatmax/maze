@@ -5,6 +5,7 @@ var helpers = require('./helpers');
 function Maze(grid) {
     this.grid = grid;
     this.stack = [];
+    this.onGeneratedCallbacks = [];
 
     this.connections = helpers.createDotDict(grid.w, grid.h);
     this.draw = this.draw.bind(this, this.grid.ctx);
@@ -13,14 +14,22 @@ function Maze(grid) {
     this.grid.canvas.classList.add('hide');
     var onFinish = _.delay.bind(_, this.onFinish.bind(this), 300);
     _.defer(this.make.bind(this, this.onProgress, onFinish));
-}
 
-Maze.prototype = {
-    onFinish: function() {
+    this.onGenerated(function() {
         var progressContainer = document.querySelector('.loading');
         progressContainer.parentElement.removeChild(progressContainer);
         this.draw();
         this.grid.canvas.classList.remove('hide');
+    }.bind(this));
+}
+
+Maze.prototype = {
+    onFinish: function() {
+        this.generated = true;
+        while (this.onGeneratedCallbacks.length) {
+            var cb = this.onGeneratedCallbacks.shift();
+            cb();
+        }
     },
 
     onProgress: function(perc) {
@@ -43,7 +52,7 @@ Maze.prototype = {
     },
 
     make: function(updateCb, finishCb) {
-        if (this.made) {
+        if (this.startedMake) {
             throw 'Maze already generated';
         }
         var start = helpers.nodeKey(0, 0);
@@ -51,7 +60,7 @@ Maze.prototype = {
         var isFinished = this.isFinished.bind(this, updateCb);
 
         this.drawPath(isFinished, finishCb, current);
-        this.made = true;
+        this.startedMake = true;
     },
 
     drawPath: function(isFinished, finishCb, current) {
@@ -73,8 +82,8 @@ Maze.prototype = {
     createConnection: function(next, current) {
         this.connections[next] = this.connections[next] || [];
         this.connections[current] = this.connections[current] || [];
-        this.connections[next].push(current);
-        this.connections[current].push(next);
+        if (this.connections[next].indexOf(current) === -1) this.connections[next].push(current);
+        if (this.connections[current].indexOf(next) === -1) this.connections[current].push(next);
     },
 
     pickMove: function(current) {
@@ -102,6 +111,11 @@ Maze.prototype = {
         var perc = finished ? 100 : (100 * (total - unvisited.length) / total) | 0;
         if (updateCb) updateCb(perc);
         return finished;
+    },
+
+    onGenerated: function(cb) {
+        if (this.generated) return cb();
+        this.onGeneratedCallbacks.push(cb);
     }
 };
 

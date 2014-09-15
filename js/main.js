@@ -2,13 +2,17 @@ var _ = require('underscore');
 
 var Grid = require('./grid');
 var Maze = require('./maze');
+var Solver = require('./solver');
+
 
 var start = function() {
-    var $maze = document.querySelector('#maze');
-    var grid = new Grid(40, 30, $maze);
+    var grid = new Grid(10, 5, document.querySelector('#maze'));
     var maze = new Maze(grid);
+    var solver = new Solver(maze);
 
-    window.maze = maze;
+    maze.onGenerated(solver.start.bind(solver));
+
+    window.solver = solver;
     window._ = _;
 };
 

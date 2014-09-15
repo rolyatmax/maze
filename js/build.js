@@ -127,19 +127,23 @@ var _ = require('underscore');
 
 var Grid = require('./grid');
 var Maze = require('./maze');
+var Solver = require('./solver');
+
 
 var start = function() {
-    var $maze = document.querySelector('#maze');
-    var grid = new Grid(40, 30, $maze);
+    var grid = new Grid(10, 5, document.querySelector('#maze'));
     var maze = new Maze(grid);
+    var solver = new Solver(maze);
 
-    window.maze = maze;
+    maze.onGenerated(solver.start.bind(solver));
+
+    window.solver = solver;
     window._ = _;
 };
 
 window.onload = start;
 
-},{"./grid":"/Users/taylorbaldwin/Sites/maze/js/grid.js","./maze":"/Users/taylorbaldwin/Sites/maze/js/maze.js","underscore":"/Users/taylorbaldwin/Sites/maze/node_modules/underscore/underscore.js"}],"/Users/taylorbaldwin/Sites/maze/js/maze.js":[function(require,module,exports){
+},{"./grid":"/Users/taylorbaldwin/Sites/maze/js/grid.js","./maze":"/Users/taylorbaldwin/Sites/maze/js/maze.js","./solver":"/Users/taylorbaldwin/Sites/maze/js/solver.js","underscore":"/Users/taylorbaldwin/Sites/maze/node_modules/underscore/underscore.js"}],"/Users/taylorbaldwin/Sites/maze/js/maze.js":[function(require,module,exports){
 var _ = require('underscore');
 var helpers = require('./helpers');
 
@@ -147,6 +151,7 @@ var helpers = require('./helpers');
 function Maze(grid) {
     this.grid = grid;
     this.stack = [];
+    this.onGeneratedCallbacks = [];
 
     this.connections = helpers.createDotDict(grid.w, grid.h);
     this.draw = this.draw.bind(this, this.grid.ctx);
@@ -155,14 +160,22 @@ function Maze(grid) {
     this.grid.canvas.classList.add('hide');
     var onFinish = _.delay.bind(_, this.onFinish.bind(this), 300);
     _.defer(this.make.bind(this, this.onProgress, onFinish));
-}
 
-Maze.prototype = {
-    onFinish: function() {
+    this.onGenerated(function() {
         var progressContainer = document.querySelector('.loading');
         progressContainer.parentElement.removeChild(progressContainer);
         this.draw();
         this.grid.canvas.classList.remove('hide');
+    }.bind(this));
+}
+
+Maze.prototype = {
+    onFinish: function() {
+        this.generated = true;
+        while (this.onGeneratedCallbacks.length) {
+            var cb = this.onGeneratedCallbacks.shift();
+            cb();
+        }
     },
 
     onProgress: function(perc) {
@@ -185,7 +198,7 @@ Maze.prototype = {
     },
 
     make: function(updateCb, finishCb) {
-        if (this.made) {
+        if (this.startedMake) {
             throw 'Maze already generated';
         }
         var start = helpers.nodeKey(0, 0);
@@ -193,7 +206,7 @@ Maze.prototype = {
         var isFinished = this.isFinished.bind(this, updateCb);
 
         this.drawPath(isFinished, finishCb, current);
-        this.made = true;
+        this.startedMake = true;
     },
 
     drawPath: function(isFinished, finishCb, current) {
@@ -215,8 +228,8 @@ Maze.prototype = {
     createConnection: function(next, current) {
         this.connections[next] = this.connections[next] || [];
         this.connections[current] = this.connections[current] || [];
-        this.connections[next].push(current);
-        this.connections[current].push(next);
+        if (this.connections[next].indexOf(current) === -1) this.connections[next].push(current);
+        if (this.connections[current].indexOf(next) === -1) this.connections[current].push(next);
     },
 
     pickMove: function(current) {
@@ -244,10 +257,117 @@ Maze.prototype = {
         var perc = finished ? 100 : (100 * (total - unvisited.length) / total) | 0;
         if (updateCb) updateCb(perc);
         return finished;
+    },
+
+    onGenerated: function(cb) {
+        if (this.generated) return cb();
+        this.onGeneratedCallbacks.push(cb);
     }
 };
 
 module.exports = Maze;
+
+},{"./helpers":"/Users/taylorbaldwin/Sites/maze/js/helpers.js","underscore":"/Users/taylorbaldwin/Sites/maze/node_modules/underscore/underscore.js"}],"/Users/taylorbaldwin/Sites/maze/js/solver.js":[function(require,module,exports){
+var _ = require('underscore');
+var helpers = require('./helpers');
+
+
+function Solver(maze) {
+    this.maze = maze;
+    this.policy = {};
+    this.current = helpers.nodeKey(0, 0);
+    this.end = helpers.nodeKey(maze.grid.w - 1, maze.grid.h - 1);
+
+    this.path = [this.current];
+    this.runs = 0;
+    this.scores = [];
+
+    _.defaults(this, {
+        'discover': 0.0,
+        'alpha': 1.0,
+        'discount': 0.2,
+        'decay': 0.99996
+    });
+}
+
+Solver.prototype = {
+    start: function() {
+        this.path = [];
+        this.current = helpers.nodeKey(0, 0);
+        this.play();
+    },
+
+    play: function() {
+        var next = this.choose();
+        var evaluateFn = this.evaluate.bind(this, this.current);
+        this.path.push(next);
+        this.current = next;
+        evaluateFn();
+
+        if (next === this.end) {
+            return this.completedMaze();
+        }
+
+        _.defer(this.play.bind(this));
+    },
+
+    completedMaze: function() {
+        console.log(this.runs + ': Completed Maze in ' + this.path.length + ' steps!');
+        this.runs += 1;
+
+        this.scores.push(this.path.length);
+        var lastUniqScores = _.uniq(_.last(this.scores, 8));
+
+        // stop when the last five scores are the same
+        if (this.runs > 10 && lastUniqScores.length === 1) {
+            console.log('Converged on optimal solution in ' + lastUniqScores[0] + ' steps');
+        } else {
+            this.start();
+        }
+    },
+
+    choose: function() {
+        _ensureDefaultVals(this.policy, this.current, this.maze);
+        var actions = _.map(this.policy[this.current], function(value, node) {
+            return {
+                'nodeMovedTo': node,
+                'value': value
+            };
+        });
+
+        var min = _.min(actions, function(action) { return action['value']; });
+        var max = _.max(actions, function(action) { return action['value']; });
+
+        var chooseRandom = (min['value'] === max['value'] || Math.random() < this.discover);
+        var action = chooseRandom ? _.sample(actions) : max;
+
+        return action['nodeMovedTo'];
+    },
+
+    evaluate: function(last) {
+        _ensureDefaultVals(this.policy, this.current, this.maze);
+
+        // every move is punished in order to encourage expediency
+        var punishment = -1;
+        var prevValue = this.policy[last][this.current];
+        var curBestChoice = _.max(this.policy[this.current]);
+        var newValue = (1 - this.discount) * prevValue + this.alpha * (punishment + this.discount * curBestChoice);
+        this.policy[last][this.current] = newValue;
+
+        this.alpha *= this.decay;
+    }
+};
+
+function _ensureDefaultVals(policy, current, maze) {
+    policy[current] = policy[current] || {};
+    var currentState = policy[current];
+    var actions = maze.connections[current];
+    actions.forEach(function(action) {
+        currentState[action] = currentState[action] || 0;
+    });
+}
+
+module.exports = Solver;
 
 },{"./helpers":"/Users/taylorbaldwin/Sites/maze/js/helpers.js","underscore":"/Users/taylorbaldwin/Sites/maze/node_modules/underscore/underscore.js"}],"/Users/taylorbaldwin/Sites/maze/node_modules/underscore/underscore.js":[function(require,module,exports){
 //     Underscore.js 1.7.0
