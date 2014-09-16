@@ -7,6 +7,7 @@ body {
     max-width: 800px;
     margin: auto;
     padding-top: 20px;
+    position: relative;
 }
 
 h1 {
@@ -20,7 +21,7 @@ h1 {
 
 #maze {
     margin-top: 40px;
-    width: 100%;
+    width: 74%;
     position: relative;
 }
 
@@ -35,6 +36,25 @@ h1 {
 #maze canvas.hide {
     opacity: 0;
     /*-webkit-transition: none;*/
+}
+
+.stats {
+    position: absolute;
+    right: 0;
+    padding-top: 40px;
+    width: 25%;
+    height: 380px;
+}
+
+.messages {
+    overflow-y: scroll;
+    height: 100%;
+}
+
+.messages span {
+    display: block;
+    margin: 15px 0;
+    font-size: 14px;
 }
 
 .loading h2 {

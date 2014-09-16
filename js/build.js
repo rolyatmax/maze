@@ -132,11 +132,11 @@ var Solver = require('./solver');
 
 
 var start = function() {
-    var grid = new Grid(8, 6, document.querySelector('#maze'));
+    var grid = new Grid(14, 9, document.querySelector('#maze'));
     var maze = new Maze(grid);
     var solver = new Solver(maze);
 
-    maze.onGenerated(solver.start.bind(solver));
+    maze.onGenerated(solver.startTraining.bind(solver));
 
     window.solver = solver;
     window._ = _;
@@ -275,20 +275,16 @@ var helpers = require('./helpers');
 
 function Solver(maze) {
     this.maze = maze;
-    this.policy = {};
-    this.current = helpers.nodeKey(0, 0);
     this.end = helpers.nodeKey(maze.grid.w - 1, maze.grid.h - 1);
-
-    this.path = [this.current];
-    this.runs = 0;
-    this.scores = [];
     this.playing = true;
+
+    this.msgContainer = document.querySelector('.messages');
 
     window.addEventListener('keydown', this.onKeydown.bind(this));
     this.setupCanvas();
 
     _.defaults(this, {
-        'explore': 0.1,
+        'explore': 0.0,
         'alpha': 0.5,
         'discount': 0.8,
         'decay': 0.99996
@@ -296,6 +292,21 @@ function Solver(maze) {
 }
 
 Solver.prototype = {
+    startTraining: function() {
+        this.policy = {};
+        this.runs = 0;
+        this.scores = [];
+        this.start();
+    },
+
+    start: function() {
+        this.clearCanvas();
+        this.startTime = this.startTime || Date.now();
+        this.path = [];
+        this.current = helpers.nodeKey(0, 0);
+        this.play();
+    },
+
     setupCanvas: function() {
         this.canvas = document.createElement('canvas');
 
@@ -331,14 +342,6 @@ Solver.prototype = {
         if (this.playing) this.play();
     },
 
-    start: function() {
-        this.clearCanvas();
-        this.startTime = this.startTime || Date.now();
-        this.path = [];
-        this.current = helpers.nodeKey(0, 0);
-        this.play();
-    },
-
     play: function() {
         var next = this.choose();
         var evaluateFn = this.evaluate.bind(this, this.current, -1);
@@ -350,28 +353,43 @@ Solver.prototype = {
         if (next === this.end) {
             return this.completedMaze();
         }
+
+        var totalNodes = this.maze.grid.h * this.maze.grid.w;
+        if (this.path.length > totalNodes * 10) {
+            // this is a relatively arbitrary number that keeps the algo from
+            // getting stuck
+            this.msgLog('Got stuck, trying again: ' + this.path.length + ' steps');
+            return _.delay(this.start.bind(this), 100);
+        }
         if (this.playing) {
             _.defer(this.play.bind(this));
         }
     },
 
     completedMaze: function() {
-        console.log(this.runs + ': Completed Maze in ' + this.path.length + ' steps');
         this.runs += 1;
+        this.logMsg(this.runs + ': Completed: ' + this.path.length + ' steps');
 
         this.scores.push(this.path.length);
         var last = _.last(this.path, 2)[0];
         this.evaluate(last, 1000);
 
-        var lastUniqScores = _.uniq(_.last(this.scores, 8));
-
-        // stop when the last five scores are the same
+        // stop when the last n scores are the same
+        var lastUniqScores = _.uniq(_.last(this.scores, 6));
         if (this.runs > 10 && lastUniqScores.length === 1) {
-            console.log('Converged on optimal solution in ' + lastUniqScores[0] + ' steps');
-            console.log('Performance (ms):', Date.now() - this.startTime);
+            this.logMsg('Solution: ' + lastUniqScores[0] + ' steps');
+            this.logMsg('Performance (ms): ' + (Date.now() - this.startTime));
         } else {
             _.delay(this.start.bind(this), 100);
         }
+    },
+
+    logMsg: function(msg) {
+        console.log(msg);
+        var firstChild = this.msgContainer.childNodes[0];
+        var span = document.createElement('span');
+        span.innerHTML = msg;
+        this.msgContainer.insertBefore(span, firstChild);
     },
 
     choose: function() {
@@ -404,7 +422,7 @@ Solver.prototype = {
         this.policy[last][this.current] = newValue;
 
         // console.log(this.explore);
-        this.alpha *= this.decay;
+        // this.alpha *= this.decay;
     }
 };
 

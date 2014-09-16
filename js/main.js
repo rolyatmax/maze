@@ -6,11 +6,11 @@ var Solver = require('./solver');
 
 
 var start = function() {
-    var grid = new Grid(8, 6, document.querySelector('#maze'));
+    var grid = new Grid(14, 9, document.querySelector('#maze'));
     var maze = new Maze(grid);
     var solver = new Solver(maze);
 
-    maze.onGenerated(solver.start.bind(solver));
+    maze.onGenerated(solver.startTraining.bind(solver));
 
     window.solver = solver;
     window._ = _;
