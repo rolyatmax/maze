@@ -4,14 +4,13 @@ var loadingTemplate = require('./loading.hbs');
 
 var MIN_SPACING = helpers.MIN_SPACING;
 var MAX_SPACING = helpers.MAX_SPACING;
-var DOT_SIZE = helpers.DOT_SIZE;
 
 
 function Grid(w, h, el) {
     this.w = w;
     this.h = h;
     this.el = el;
-    this.spacing = MIN_SPACING; // default
+    this.spacing = MIN_SPACING;
 
     this.dots = helpers.createDotList(this.w, this.h);
 
@@ -32,14 +31,6 @@ Grid.prototype = {
 
         this.ctx = this.canvas.getContext('2d');
         this.el.appendChild(this.canvas);
-    },
-
-    isEdge: function(node) {
-        var pos = helpers.getCoords(node);
-        if (pos.x === 0 || pos.y === 0 || pos.x >= this.w - 1 || pos.y >= this.h - 1) {
-            return true;
-        }
-        return false;
     },
 
     isInGrid: function(node) {

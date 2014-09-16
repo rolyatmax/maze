@@ -51,7 +51,6 @@ module.exports = {
     'DELIMITER': DELIMITER,
     'MIN_SPACING': 5,
     'MAX_SPACING': 80,
-    'DOT_SIZE': 2,
 
     getCoords: getCoords,
     createDotList: createDotList,

@@ -5,14 +5,13 @@ var loadingTemplate = require('./loading.hbs');
 
 var MIN_SPACING = helpers.MIN_SPACING;
 var MAX_SPACING = helpers.MAX_SPACING;
-var DOT_SIZE = helpers.DOT_SIZE;
 
 
 function Grid(w, h, el) {
     this.w = w;
     this.h = h;
     this.el = el;
-    this.spacing = MIN_SPACING; // default
+    this.spacing = MIN_SPACING;
 
     this.dots = helpers.createDotList(this.w, this.h);
 
@@ -33,14 +32,6 @@ Grid.prototype = {
 
         this.ctx = this.canvas.getContext('2d');
         this.el.appendChild(this.canvas);
-    },
-
-    isEdge: function(node) {
-        var pos = helpers.getCoords(node);
-        if (pos.x === 0 || pos.y === 0 || pos.x >= this.w - 1 || pos.y >= this.h - 1) {
-            return true;
-        }
-        return false;
     },
 
     isInGrid: function(node) {
@@ -108,7 +99,6 @@ module.exports = {
     'DELIMITER': DELIMITER,
     'MIN_SPACING': 5,
     'MAX_SPACING': 80,
-    'DOT_SIZE': 2,
 
     getCoords: getCoords,
     createDotList: createDotList,
@@ -130,9 +120,10 @@ var _ = require('underscore');
 var Grid = require('./grid');
 var Maze = require('./maze');
 var Solver = require('./solver');
+var Stats = require('./stats');
 
 var mazeEl;
-var grid, maze, solver;
+var grid, maze, solver, stats;
 window.solvers = [];
 
 
@@ -141,6 +132,7 @@ var setup = function() {
     document.querySelector('.new-maze').addEventListener('click', newMaze);
     document.querySelector('.pause').addEventListener('click', pause);
     document.querySelector('.new-policy').addEventListener('click', newSolver);
+    document.querySelector('.visualize-policy').addEventListener('click', visualizePolicy);
     start();
 };
 
@@ -148,8 +140,12 @@ var pause = function() {
     solver.togglePlay();
 };
 
+var visualizePolicy = function() {
+    stats.togglePolicyViz();
+};
+
 var start = function() {
-    grid = new Grid(20, 12, mazeEl);
+    grid = new Grid(15, 9, mazeEl);
     maze = new Maze(grid);
     setupSolver();
 
@@ -159,12 +155,14 @@ var start = function() {
 var setupSolver = function() {
     solver = new Solver(maze);
     solvers.push(solver);
+    stats = new Stats(solver);
     maze.onGenerated(solver.startTraining.bind(solver));
 };
 
 var newSolver = function() {
     document.querySelector('.messages').innerHTML = '';
     solver.destroy();
+    stats.destroy();
     setupSolver();
 };
 
@@ -178,7 +176,7 @@ var newMaze = function() {
 
 window.onload = setup;
 
-},{"./grid":"/Users/taylorbaldwin/Sites/maze/js/grid.js","./maze":"/Users/taylorbaldwin/Sites/maze/js/maze.js","./solver":"/Users/taylorbaldwin/Sites/maze/js/solver.js","underscore":"/Users/taylorbaldwin/Sites/maze/node_modules/underscore/underscore.js"}],"/Users/taylorbaldwin/Sites/maze/js/maze.js":[function(require,module,exports){
+},{"./grid":"/Users/taylorbaldwin/Sites/maze/js/grid.js","./maze":"/Users/taylorbaldwin/Sites/maze/js/maze.js","./solver":"/Users/taylorbaldwin/Sites/maze/js/solver.js","./stats":"/Users/taylorbaldwin/Sites/maze/js/stats.js","underscore":"/Users/taylorbaldwin/Sites/maze/node_modules/underscore/underscore.js"}],"/Users/taylorbaldwin/Sites/maze/js/maze.js":[function(require,module,exports){
 var _ = require('underscore');
 var helpers = require('./helpers');
 
@@ -317,14 +315,18 @@ function Solver(maze) {
 
     this.setupCanvas();
 
+    this.onPlay = function(){};
+
     _.defaults(this, {
-        'explore': 0.0,
+        'explore': 1.0,
         'alpha': 0.5,
         'discount': 0.8,
-        'decay': 0.99996,
+        'decay': 0.9994,
+        'initial': -1,
+        'trainingThreshold': 8, // number of consecutive occurences to stop training
         'rewards': {
             'step': -1,
-            'finished': 1000
+            'finished': 0
         }
     });
 }
@@ -360,7 +362,7 @@ Solver.prototype = {
         var spacing = this.maze.grid.spacing;
         var startPos = helpers.getCoords(start);
         var endPos = helpers.getCoords(end);
-        ctx.strokeStyle = 'rgba(31, 231, 31, 0.4)';
+        ctx.strokeStyle = 'rgba(31, 231, 31, 0.3)';
         ctx.lineWidth = spacing;
         ctx.beginPath();
         ctx.moveTo(startPos.x * spacing * 2 + spacing, startPos.y * spacing * 2 + spacing);
@@ -384,6 +386,8 @@ Solver.prototype = {
         this.draw(this.current, next);
         this.current = next;
         evaluateFn();
+
+        this.onPlay();
 
         if (next === this.end) {
             return this.completedMaze();
@@ -410,7 +414,7 @@ Solver.prototype = {
         this.evaluate(last, 'finished');
 
         // stop when the last n scores are the same
-        var lastUniqScores = _.uniq(_.last(this.scores, 6));
+        var lastUniqScores = _.uniq(_.last(this.scores, this.trainingThreshold));
         if (this.runs > 10 && lastUniqScores.length === 1) {
             this.logMsg('Solution: ' + lastUniqScores[0] + ' steps');
             this.logMsg('Performance (ms): ' + (Date.now() - this.startTime));
@@ -428,7 +432,7 @@ Solver.prototype = {
     },
 
     choose: function() {
-        _ensureDefaultVals(this.policy, this.current, this.maze);
+        _ensureDefaultVals(this.policy, this.current, this.maze, this.initial);
         var last = _.last(this.path, 2)[0];
         var actions = _.map(this.policy[this.current], function(value, node) {
             if (node === last && _.size(this.policy[this.current]) > 1) return false;
@@ -449,7 +453,7 @@ Solver.prototype = {
     },
 
     evaluate: function(last, rewardName) {
-        _ensureDefaultVals(this.policy, this.current, this.maze);
+        _ensureDefaultVals(this.policy, this.current, this.maze, this.initial);
 
         var reward = this.rewards[rewardName];
 
@@ -458,8 +462,8 @@ Solver.prototype = {
         var newValue = (1 - this.discount) * prevValue + this.alpha * (reward + this.discount * curBestChoice);
         this.policy[last][this.current] = newValue;
 
-        // console.log(this.explore);
-        // this.alpha *= this.decay;
+        console.log(this.explore);
+        this.explore *= this.decay;
     },
 
     destroy: function() {
@@ -468,16 +472,94 @@ Solver.prototype = {
     }
 };
 
-function _ensureDefaultVals(policy, current, maze) {
+function _ensureDefaultVals(policy, current, maze, initial) {
     policy[current] = policy[current] || {};
     var currentState = policy[current];
     var actions = maze.connections[current];
     actions.forEach(function(action) {
-        currentState[action] = currentState[action] || 0;
+        currentState[action] = currentState[action] || initial;
     });
 }
 
 module.exports = Solver;
+
+},{"./helpers":"/Users/taylorbaldwin/Sites/maze/js/helpers.js","underscore":"/Users/taylorbaldwin/Sites/maze/node_modules/underscore/underscore.js"}],"/Users/taylorbaldwin/Sites/maze/js/stats.js":[function(require,module,exports){
+var _ = require('underscore');
+var helpers = require('./helpers');
+
+
+function Stats(solver) {
+    this.solver = solver;
+
+    this.solver.onPlay = this.visualizePolicy.bind(this);
+
+    this.showingPolicy = false;
+
+    this.setupCanvas();
+}
+
+Stats.prototype = {
+    setupCanvas: function() {
+        this.canvas = document.createElement('canvas');
+
+        var grid = this.solver.maze.grid;
+
+        this.canvas.width = grid.spacing * grid.w * 2;
+        this.canvas.height = grid.spacing * grid.h * 2;
+
+        this.ctx = this.canvas.getContext('2d');
+        grid.el.appendChild(this.canvas);
+    },
+
+    clearCanvas: function() {
+        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+    },
+
+    togglePolicyViz: function() {
+        this.showingPolicy = !this.showingPolicy;
+        if (this.showingPolicy) {
+            this.visualizePolicy();
+        } else {
+            this.clearCanvas();
+            this.solver.canvas.style.opacity = 1;
+        }
+    },
+
+    visualizePolicy: function() {
+        if (!this.showingPolicy) {
+            return;
+        }
+        this.clearCanvas();
+        this.solver.canvas.style.opacity = 0.2;
+        var values = _.map(this.solver.policy, function(vals, node) {
+            return {
+                'name': node,
+                'value': _.max(vals)
+            };
+        }.bind(this));
+        var high = _.max(values, function(node) { return node['value']; })['value'];
+        var low = _.min(values, function(node) { return node['value']; })['value'];
+        var spectrumSize = high - low;
+        values.forEach(function(node) {
+            node['value'] = (node['value'] - low - (spectrumSize / 2)) / spectrumSize;
+            this.drawDot(node);
+        }.bind(this));
+    },
+
+    drawDot: function(node) {
+        var spacing = this.solver.maze.grid.spacing;
+        var coords = helpers.getCoords(node['name']);
+        var val = (node['value'] + 1) / 2; // temp?
+        this.ctx.fillStyle = 'rgba(250, 10, 10, ' + val + ')';
+        this.ctx.fillRect(coords.x * spacing * 2, coords.y * spacing * 2, spacing * 2, spacing * 2);
+    },
+
+    destroy: function() {
+        this.canvas.parentElement.removeChild(this.canvas);
+    }
+};
+
+module.exports = Stats;
 
 },{"./helpers":"/Users/taylorbaldwin/Sites/maze/js/helpers.js","underscore":"/Users/taylorbaldwin/Sites/maze/node_modules/underscore/underscore.js"}],"/Users/taylorbaldwin/Sites/maze/node_modules/handlebars/dist/cjs/handlebars.runtime.js":[function(require,module,exports){
 "use strict";

@@ -11,14 +11,18 @@ function Solver(maze) {
 
     this.setupCanvas();
 
+    this.onPlay = function(){};
+
     _.defaults(this, {
-        'explore': 0.0,
+        'explore': 1.0,
         'alpha': 0.5,
         'discount': 0.8,
-        'decay': 0.99996,
+        'decay': 0.9994,
+        'initial': -1,
+        'trainingThreshold': 8, // number of consecutive occurences to stop training
         'rewards': {
             'step': -1,
-            'finished': 1000
+            'finished': 0
         }
     });
 }
@@ -54,7 +58,7 @@ Solver.prototype = {
         var spacing = this.maze.grid.spacing;
         var startPos = helpers.getCoords(start);
         var endPos = helpers.getCoords(end);
-        ctx.strokeStyle = 'rgba(31, 231, 31, 0.4)';
+        ctx.strokeStyle = 'rgba(31, 231, 31, 0.3)';
         ctx.lineWidth = spacing;
         ctx.beginPath();
         ctx.moveTo(startPos.x * spacing * 2 + spacing, startPos.y * spacing * 2 + spacing);
@@ -78,6 +82,8 @@ Solver.prototype = {
         this.draw(this.current, next);
         this.current = next;
         evaluateFn();
+
+        this.onPlay();
 
         if (next === this.end) {
             return this.completedMaze();
@@ -104,7 +110,7 @@ Solver.prototype = {
         this.evaluate(last, 'finished');
 
         // stop when the last n scores are the same
-        var lastUniqScores = _.uniq(_.last(this.scores, 6));
+        var lastUniqScores = _.uniq(_.last(this.scores, this.trainingThreshold));
         if (this.runs > 10 && lastUniqScores.length === 1) {
             this.logMsg('Solution: ' + lastUniqScores[0] + ' steps');
             this.logMsg('Performance (ms): ' + (Date.now() - this.startTime));
@@ -122,7 +128,7 @@ Solver.prototype = {
     },
 
     choose: function() {
-        _ensureDefaultVals(this.policy, this.current, this.maze);
+        _ensureDefaultVals(this.policy, this.current, this.maze, this.initial);
         var last = _.last(this.path, 2)[0];
         var actions = _.map(this.policy[this.current], function(value, node) {
             if (node === last && _.size(this.policy[this.current]) > 1) return false;
@@ -143,7 +149,7 @@ Solver.prototype = {
     },
 
     evaluate: function(last, rewardName) {
-        _ensureDefaultVals(this.policy, this.current, this.maze);
+        _ensureDefaultVals(this.policy, this.current, this.maze, this.initial);
 
         var reward = this.rewards[rewardName];
 
@@ -152,8 +158,8 @@ Solver.prototype = {
         var newValue = (1 - this.discount) * prevValue + this.alpha * (reward + this.discount * curBestChoice);
         this.policy[last][this.current] = newValue;
 
-        // console.log(this.explore);
-        // this.alpha *= this.decay;
+        console.log(this.explore);
+        this.explore *= this.decay;
     },
 
     destroy: function() {
@@ -162,12 +168,12 @@ Solver.prototype = {
     }
 };
 
-function _ensureDefaultVals(policy, current, maze) {
+function _ensureDefaultVals(policy, current, maze, initial) {
     policy[current] = policy[current] || {};
     var currentState = policy[current];
     var actions = maze.connections[current];
     actions.forEach(function(action) {
-        currentState[action] = currentState[action] || 0;
+        currentState[action] = currentState[action] || initial;
     });
 }
 
