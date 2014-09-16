@@ -4,16 +4,49 @@ var Grid = require('./grid');
 var Maze = require('./maze');
 var Solver = require('./solver');
 
+var mazeEl;
+var grid, maze, solver;
+window.solvers = [];
+
+
+var setup = function() {
+    mazeEl = document.querySelector('#maze');
+    document.querySelector('.new-maze').addEventListener('click', newMaze);
+    document.querySelector('.pause').addEventListener('click', pause);
+    document.querySelector('.new-policy').addEventListener('click', newSolver);
+    start();
+};
+
+var pause = function() {
+    solver.togglePlay();
+};
 
 var start = function() {
-    var grid = new Grid(20, 12, document.querySelector('#maze'));
-    var maze = new Maze(grid);
-    var solver = new Solver(maze);
+    grid = new Grid(20, 12, mazeEl);
+    maze = new Maze(grid);
+    setupSolver();
 
-    maze.onGenerated(solver.startTraining.bind(solver));
-
-    window.solver = solver;
     window._ = _;
 };
 
-window.onload = start;
+var setupSolver = function() {
+    solver = new Solver(maze);
+    solvers.push(solver);
+    maze.onGenerated(solver.startTraining.bind(solver));
+};
+
+var newSolver = function() {
+    document.querySelector('.messages').innerHTML = '';
+    solver.destroy();
+    setupSolver();
+};
+
+var newMaze = function() {
+    solver.destroy();
+    mazeEl.innerHTML = '';
+    document.querySelector('.messages').innerHTML = '';
+    solvers = [];
+    start();
+};
+
+window.onload = setup;

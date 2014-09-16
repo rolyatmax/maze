@@ -9,16 +9,16 @@
     </head>
     <body>
         <div id="container">
-            <h1>Maze</h1>
+            <h1>Maze Learning</h1>
+            <div class="controls">
+                <div class="new-maze button">Generate new maze</div>
+                <div class="pause button">Start/Pause training</div>
+                <div class="new-policy button">Train new policy</div>
+            </div>
             <div class="stats">
                 <div class="messages"></div>
             </div>
-            <div id="maze">
-                <div class="loading">
-                    <h2>Generating maze</h2>
-                    <div class="progress-container"><div class="progress"></div></div>
-                </div>
-            </div>
+            <div id="maze"></div>
         </div>
         <script src="js/build.js"></script>
     </body>

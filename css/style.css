@@ -35,13 +35,32 @@ h1 {
 
 #maze canvas.hide {
     opacity: 0;
-    /*-webkit-transition: none;*/
+}
+
+.controls {
+    margin: 20px 0;
+}
+
+.controls .button {
+    margin-right: 20px;
+    cursor: pointer;
+    display: inline-block;
+    padding: 12px 18px;
+    background: rgb(70, 70, 70);
+    opacity: 0.7;
+    color: white;
+    border-radius: 4px;
+    -webkit-transition: opacity 200ms linear;
+}
+
+.controls .button:hover {
+    opacity: 1;
 }
 
 .stats {
     position: absolute;
     right: 0;
-    padding-top: 40px;
+    padding-top: 10px;
     width: 25%;
     height: 380px;
 }

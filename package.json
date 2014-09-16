@@ -17,9 +17,16 @@
   },
   "homepage": "https://github.com/rolyatmax/maze",
   "devDependencies": {
-    "browserify": "4.1.9"
+    "browserify": "4.1.9",
+    "hbsfy": "2.1.0",
+    "handlebars": "2.0.0"
   },
   "dependencies": {
     "underscore": "1.7.0"
+  },
+  "browserify": {
+    "transform": [
+      "hbsfy"
+    ]
   }
 }

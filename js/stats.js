@@ -1,25 +1,14 @@
 var _ = require('underscore');
 var helpers = require('./helpers');
-var loadingTemplate = require('./loading.hbs');
-
-var MIN_SPACING = helpers.MIN_SPACING;
-var MAX_SPACING = helpers.MAX_SPACING;
-var DOT_SIZE = helpers.DOT_SIZE;
 
 
-function Grid(w, h, el) {
-    this.w = w;
-    this.h = h;
-    this.el = el;
-    this.spacing = MIN_SPACING; // default
+function Stats(solver) {
+    this.solver = solver;
 
-    this.dots = helpers.createDotList(this.w, this.h);
-
-    this.el.innerHTML = loadingTemplate();
     this.setupCanvas();
 }
 
-Grid.prototype = {
+Stats.prototype = {
     setupCanvas: function() {
         this.canvas = document.createElement('canvas');
         var pWidth = parseInt(window.getComputedStyle(this.el)['width'], 10);
@@ -40,23 +29,7 @@ Grid.prototype = {
             ctx.fillStyle = '#555';
             ctx.fillRect(pos.x * this.spacing + 1, pos.y * this.spacing + 1, DOT_SIZE, DOT_SIZE);
         }.bind(this));
-    },
-
-    isEdge: function(node) {
-        var pos = helpers.getCoords(node);
-        if (pos.x === 0 || pos.y === 0 || pos.x >= this.w - 1 || pos.y >= this.h - 1) {
-            return true;
-        }
-        return false;
-    },
-
-    isInGrid: function(node) {
-        var pos = helpers.getCoords(node);
-        if (pos.x < 0 || pos.y < 0 || pos.x >= this.w || pos.y >= this.h) {
-            return false;
-        }
-        return true;
     }
 };
 
-module.exports = Grid;
+module.exports = Stats;

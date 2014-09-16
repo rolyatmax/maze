@@ -9,14 +9,17 @@ function Solver(maze) {
 
     this.msgContainer = document.querySelector('.messages');
 
-    window.addEventListener('keydown', this.onKeydown.bind(this));
     this.setupCanvas();
 
     _.defaults(this, {
         'explore': 0.0,
         'alpha': 0.5,
         'discount': 0.8,
-        'decay': 0.99996
+        'decay': 0.99996,
+        'rewards': {
+            'step': -1,
+            'finished': 1000
+        }
     });
 }
 
@@ -62,10 +65,6 @@ Solver.prototype = {
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
     },
 
-    onKeydown: function(e) {
-        if (e.which === 32) this.togglePlay(); // spacebar
-    },
-
     togglePlay: function() {
         this.playing = !this.playing;
         if (this.playing) this.play();
@@ -73,7 +72,7 @@ Solver.prototype = {
 
     play: function() {
         var next = this.choose();
-        var evaluateFn = this.evaluate.bind(this, this.current, -1);
+        var evaluateFn = this.evaluate.bind(this, this.current, 'step');
         this.path.push(next);
         this.draw(this.current, next);
         this.current = next;
@@ -101,7 +100,7 @@ Solver.prototype = {
 
         this.scores.push(this.path.length);
         var last = _.last(this.path, 2)[0];
-        this.evaluate(last, 1000);
+        this.evaluate(last, 'finished');
 
         // stop when the last n scores are the same
         var lastUniqScores = _.uniq(_.last(this.scores, 6));
@@ -142,8 +141,10 @@ Solver.prototype = {
         return action && action['nodeMovedTo'];
     },
 
-    evaluate: function(last, reward) {
+    evaluate: function(last, rewardName) {
         _ensureDefaultVals(this.policy, this.current, this.maze);
+
+        var reward = this.rewards[rewardName];
 
         var prevValue = this.policy[last][this.current];
         var curBestChoice = _.max(this.policy[this.current]);
@@ -152,6 +153,11 @@ Solver.prototype = {
 
         // console.log(this.explore);
         // this.alpha *= this.decay;
+    },
+
+    destroy: function() {
+        this.playing = false;
+        this.canvas.parentElement.removeChild(this.canvas);
     }
 };
 
