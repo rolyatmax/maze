@@ -42,10 +42,11 @@ Maze.prototype = {
             var startPos = helpers.getCoords(start);
             ends.forEach(function(end) {
                 var endPos = helpers.getCoords(end);
-                ctx.strokeStyle = '#555';
+                ctx.strokeStyle = '#fff';
+                ctx.lineWidth = spacing;
                 ctx.beginPath();
-                ctx.moveTo(startPos.x * spacing + 1, startPos.y * spacing + 1);
-                ctx.lineTo(endPos.x * spacing + 1, endPos.y * spacing + 1);
+                ctx.moveTo(startPos.x * spacing * 2 + spacing, startPos.y * spacing * 2 + spacing);
+                ctx.lineTo(endPos.x * spacing * 2 + spacing, endPos.y * spacing * 2 + spacing);
                 ctx.stroke();
             });
         });

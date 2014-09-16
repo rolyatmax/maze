@@ -24,23 +24,15 @@ Grid.prototype = {
     setupCanvas: function() {
         this.canvas = document.createElement('canvas');
         var pWidth = parseInt(window.getComputedStyle(this.el)['width'], 10);
-        this.spacing = (pWidth / this.w) | 0;
-        this.spacing = Math.min(Math.max(MIN_SPACING, this.spacing), MAX_SPACING);
+        var spacing = (pWidth / this.w) | 0;
+        this.spacing = Math.min(Math.max(MIN_SPACING, spacing), MAX_SPACING) / 2;
 
-        this.canvas.width = this.spacing * this.w;
-        this.canvas.height = this.spacing * this.h;
+        this.canvas.style.backgroundColor = '#3d3d3d';
+        this.canvas.width = this.spacing * this.w * 2;
+        this.canvas.height = this.spacing * this.h * 2;
 
         this.ctx = this.canvas.getContext('2d');
-        this.draw = this.draw.bind(this, this.ctx);
         this.el.appendChild(this.canvas);
-    },
-
-    draw: function(ctx) {
-        this.dots.forEach(function(dot) {
-            var pos = helpers.getCoords(dot);
-            ctx.fillStyle = '#555';
-            ctx.fillRect(pos.x * this.spacing + 1, pos.y * this.spacing + 1, DOT_SIZE, DOT_SIZE);
-        }.bind(this));
     },
 
     isEdge: function(node) {
@@ -231,10 +223,11 @@ Maze.prototype = {
             var startPos = helpers.getCoords(start);
             ends.forEach(function(end) {
                 var endPos = helpers.getCoords(end);
-                ctx.strokeStyle = '#555';
+                ctx.strokeStyle = '#fff';
+                ctx.lineWidth = spacing;
                 ctx.beginPath();
-                ctx.moveTo(startPos.x * spacing + 1, startPos.y * spacing + 1);
-                ctx.lineTo(endPos.x * spacing + 1, endPos.y * spacing + 1);
+                ctx.moveTo(startPos.x * spacing * 2 + spacing, startPos.y * spacing * 2 + spacing);
+                ctx.lineTo(endPos.x * spacing * 2 + spacing, endPos.y * spacing * 2 + spacing);
                 ctx.stroke();
             });
         });
@@ -355,8 +348,8 @@ Solver.prototype = {
     setupCanvas: function() {
         this.canvas = document.createElement('canvas');
 
-        this.canvas.width = this.maze.grid.spacing * this.maze.grid.w;
-        this.canvas.height = this.maze.grid.spacing * this.maze.grid.h;
+        this.canvas.width = this.maze.grid.spacing * this.maze.grid.w * 2;
+        this.canvas.height = this.maze.grid.spacing * this.maze.grid.h * 2;
 
         this.ctx = this.canvas.getContext('2d');
         this.draw = this.draw.bind(this, this.ctx);
@@ -367,10 +360,11 @@ Solver.prototype = {
         var spacing = this.maze.grid.spacing;
         var startPos = helpers.getCoords(start);
         var endPos = helpers.getCoords(end);
-        ctx.strokeStyle = 'rgba(31, 231, 31, 0.95)';
+        ctx.strokeStyle = 'rgba(31, 231, 31, 0.4)';
+        ctx.lineWidth = spacing;
         ctx.beginPath();
-        ctx.moveTo(startPos.x * spacing + 1, startPos.y * spacing + 1);
-        ctx.lineTo(endPos.x * spacing + 1, endPos.y * spacing + 1);
+        ctx.moveTo(startPos.x * spacing * 2 + spacing, startPos.y * spacing * 2 + spacing);
+        ctx.lineTo(endPos.x * spacing * 2 + spacing, endPos.y * spacing * 2 + spacing);
         ctx.stroke();
     },
 
@@ -399,7 +393,7 @@ Solver.prototype = {
         if (this.path.length > totalNodes * 10) {
             // this is a relatively arbitrary number that keeps the algo from
             // getting stuck
-            this.msgLog('Got stuck, trying again: ' + this.path.length + ' steps');
+            this.logMsg('Got stuck, trying again: ' + this.path.length + ' steps');
             return _.delay(this.start.bind(this), 100);
         }
         if (this.playing) {
