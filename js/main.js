@@ -5,12 +5,20 @@ var Maze = require('./maze');
 var Solver = require('./solver');
 var Stats = require('./stats');
 
+var Info = require('./info');
+
 var mazeEl;
 var grid, maze, solver, stats;
 window.solvers = [];
 
 
 var setup = function() {
+    var info = new Info({
+        text: "PUT STUFF HERE",
+        keyTrigger: true,
+        container: 'wrapper'
+    });
+
     mazeEl = document.querySelector('#maze');
     document.querySelector('.new-maze').addEventListener('click', newMaze);
     document.querySelector('.pause').addEventListener('click', pause);

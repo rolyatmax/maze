@@ -18,10 +18,10 @@ function Solver(maze) {
         'alpha': 0.5,
         'discount': 0.8,
         'decay': 0.9994,
-        'initial': -1,
+        'initial': -10,
         'trainingThreshold': 8, // number of consecutive occurences to stop training
         'rewards': {
-            'step': -1,
+            'step': -10,
             'finished': 0
         }
     });
