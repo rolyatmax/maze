@@ -9,17 +9,18 @@ var DOT_SIZE = helpers.DOT_SIZE;
 function Grid(w, h, el) {
     this.w = w;
     this.h = h;
+    this.el = el;
     this.spacing = MIN_SPACING; // default
 
     this.dots = helpers.createDotList(this.w, this.h);
 
-    this.setupCanvas(el);
+    this.setupCanvas();
 }
 
 Grid.prototype = {
-    setupCanvas: function(parent) {
+    setupCanvas: function() {
         this.canvas = document.createElement('canvas');
-        var pWidth = parseInt(window.getComputedStyle(parent)['width'], 10);
+        var pWidth = parseInt(window.getComputedStyle(this.el)['width'], 10);
         this.spacing = (pWidth / this.w) | 0;
         this.spacing = Math.min(Math.max(MIN_SPACING, this.spacing), MAX_SPACING);
 
@@ -28,7 +29,7 @@ Grid.prototype = {
 
         this.ctx = this.canvas.getContext('2d');
         this.draw = this.draw.bind(this, this.ctx);
-        parent.appendChild(this.canvas);
+        this.el.appendChild(this.canvas);
     },
 
     draw: function(ctx) {
