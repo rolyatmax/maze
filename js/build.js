@@ -1,4 +1,4 @@
-(function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({"/Users/Tb/Sites/maze/js/grid.js":[function(require,module,exports){
+(function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({"/Users/taylorbaldwin/Sites/maze/js/grid.js":[function(require,module,exports){
 var _ = require('underscore');
 var helpers = require('./helpers');
 
@@ -60,7 +60,7 @@ Grid.prototype = {
 
 module.exports = Grid;
 
-},{"./helpers":"/Users/Tb/Sites/maze/js/helpers.js","underscore":"/Users/Tb/Sites/maze/node_modules/underscore/underscore.js"}],"/Users/Tb/Sites/maze/js/helpers.js":[function(require,module,exports){
+},{"./helpers":"/Users/taylorbaldwin/Sites/maze/js/helpers.js","underscore":"/Users/taylorbaldwin/Sites/maze/node_modules/underscore/underscore.js"}],"/Users/taylorbaldwin/Sites/maze/js/helpers.js":[function(require,module,exports){
 
 var DELIMITER = '|';
 
@@ -123,7 +123,7 @@ module.exports = {
     getAdjacentNodes: getAdjacentNodes
 };
 
-},{}],"/Users/Tb/Sites/maze/js/main.js":[function(require,module,exports){
+},{}],"/Users/taylorbaldwin/Sites/maze/js/main.js":[function(require,module,exports){
 var _ = require('underscore');
 
 var Grid = require('./grid');
@@ -132,7 +132,7 @@ var Solver = require('./solver');
 
 
 var start = function() {
-    var grid = new Grid(10, 6, document.querySelector('#maze'));
+    var grid = new Grid(8, 6, document.querySelector('#maze'));
     var maze = new Maze(grid);
     var solver = new Solver(maze);
 
@@ -144,7 +144,7 @@ var start = function() {
 
 window.onload = start;
 
-},{"./grid":"/Users/Tb/Sites/maze/js/grid.js","./maze":"/Users/Tb/Sites/maze/js/maze.js","./solver":"/Users/Tb/Sites/maze/js/solver.js","underscore":"/Users/Tb/Sites/maze/node_modules/underscore/underscore.js"}],"/Users/Tb/Sites/maze/js/maze.js":[function(require,module,exports){
+},{"./grid":"/Users/taylorbaldwin/Sites/maze/js/grid.js","./maze":"/Users/taylorbaldwin/Sites/maze/js/maze.js","./solver":"/Users/taylorbaldwin/Sites/maze/js/solver.js","underscore":"/Users/taylorbaldwin/Sites/maze/node_modules/underscore/underscore.js"}],"/Users/taylorbaldwin/Sites/maze/js/maze.js":[function(require,module,exports){
 var _ = require('underscore');
 var helpers = require('./helpers');
 
@@ -268,7 +268,7 @@ Maze.prototype = {
 
 module.exports = Maze;
 
-},{"./helpers":"/Users/Tb/Sites/maze/js/helpers.js","underscore":"/Users/Tb/Sites/maze/node_modules/underscore/underscore.js"}],"/Users/Tb/Sites/maze/js/solver.js":[function(require,module,exports){
+},{"./helpers":"/Users/taylorbaldwin/Sites/maze/js/helpers.js","underscore":"/Users/taylorbaldwin/Sites/maze/node_modules/underscore/underscore.js"}],"/Users/taylorbaldwin/Sites/maze/js/solver.js":[function(require,module,exports){
 var _ = require('underscore');
 var helpers = require('./helpers');
 
@@ -288,10 +288,10 @@ function Solver(maze) {
     this.setupCanvas();
 
     _.defaults(this, {
-        'explore': 0.2,
-        'alpha': 0.85,
-        'discount': 0.3,
-        'decay': 0.9996
+        'explore': 0.1,
+        'alpha': 0.5,
+        'discount': 0.8,
+        'decay': 0.99996
     });
 }
 
@@ -341,9 +341,6 @@ Solver.prototype = {
 
     play: function() {
         var next = this.choose();
-        if (!next) {
-            return this.failedMaze();
-        }
         var evaluateFn = this.evaluate.bind(this, this.current, -1);
         this.path.push(next);
         this.draw(this.current, next);
@@ -356,14 +353,6 @@ Solver.prototype = {
         if (this.playing) {
             _.defer(this.play.bind(this));
         }
-    },
-
-    failedMaze: function() {
-        var next = this.current;
-        this.current = _.last(this.path, 2)[0];
-        this.evaluate(this.current, -100000);
-        console.log('Failed Maze');
-        _.delay(this.start.bind(this), 100);
     },
 
     completedMaze: function() {
@@ -389,12 +378,12 @@ Solver.prototype = {
         _ensureDefaultVals(this.policy, this.current, this.maze);
         var last = _.last(this.path, 2)[0];
         var actions = _.map(this.policy[this.current], function(value, node) {
-            if (node === last) return false;
+            if (node === last && _.size(this.policy[this.current]) > 1) return false;
             return {
                 'nodeMovedTo': node,
                 'value': value
             };
-        });
+        }.bind(this));
         actions = _.compact(actions);
 
         var min = _.min(actions, function(action) { return action['value']; });
@@ -415,7 +404,7 @@ Solver.prototype = {
         this.policy[last][this.current] = newValue;
 
         // console.log(this.explore);
-        this.explore *= this.decay;
+        this.alpha *= this.decay;
     }
 };
 
@@ -430,7 +419,7 @@ function _ensureDefaultVals(policy, current, maze) {
 
 module.exports = Solver;
 
-},{"./helpers":"/Users/Tb/Sites/maze/js/helpers.js","underscore":"/Users/Tb/Sites/maze/node_modules/underscore/underscore.js"}],"/Users/Tb/Sites/maze/node_modules/underscore/underscore.js":[function(require,module,exports){
+},{"./helpers":"/Users/taylorbaldwin/Sites/maze/js/helpers.js","underscore":"/Users/taylorbaldwin/Sites/maze/node_modules/underscore/underscore.js"}],"/Users/taylorbaldwin/Sites/maze/node_modules/underscore/underscore.js":[function(require,module,exports){
 //     Underscore.js 1.7.0
 //     http://underscorejs.org
 //     (c) 2009-2014 Jeremy Ashkenas, DocumentCloud and Investigative Reporters & Editors
@@ -1847,4 +1836,4 @@ module.exports = Solver;
   }
 }.call(this));
 
-},{}]},{},["/Users/Tb/Sites/maze/js/main.js"]);
+},{}]},{},["/Users/taylorbaldwin/Sites/maze/js/main.js"]);

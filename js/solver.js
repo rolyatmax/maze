@@ -17,10 +17,10 @@ function Solver(maze) {
     this.setupCanvas();
 
     _.defaults(this, {
-        'explore': 0.2,
-        'alpha': 0.85,
-        'discount': 0.3,
-        'decay': 0.9996
+        'explore': 0.1,
+        'alpha': 0.5,
+        'discount': 0.8,
+        'decay': 0.99996
     });
 }
 
@@ -70,9 +70,6 @@ Solver.prototype = {
 
     play: function() {
         var next = this.choose();
-        if (!next) {
-            return this.failedMaze();
-        }
         var evaluateFn = this.evaluate.bind(this, this.current, -1);
         this.path.push(next);
         this.draw(this.current, next);
@@ -85,14 +82,6 @@ Solver.prototype = {
         if (this.playing) {
             _.defer(this.play.bind(this));
         }
-    },
-
-    failedMaze: function() {
-        var next = this.current;
-        this.current = _.last(this.path, 2)[0];
-        this.evaluate(this.current, -100000);
-        console.log('Failed Maze');
-        _.delay(this.start.bind(this), 100);
     },
 
     completedMaze: function() {
@@ -118,12 +107,12 @@ Solver.prototype = {
         _ensureDefaultVals(this.policy, this.current, this.maze);
         var last = _.last(this.path, 2)[0];
         var actions = _.map(this.policy[this.current], function(value, node) {
-            if (node === last) return false;
+            if (node === last && _.size(this.policy[this.current]) > 1) return false;
             return {
                 'nodeMovedTo': node,
                 'value': value
             };
-        });
+        }.bind(this));
         actions = _.compact(actions);
 
         var min = _.min(actions, function(action) { return action['value']; });
@@ -144,7 +133,7 @@ Solver.prototype = {
         this.policy[last][this.current] = newValue;
 
         // console.log(this.explore);
-        this.explore *= this.decay;
+        this.alpha *= this.decay;
     }
 };
 
