@@ -132,7 +132,7 @@ var Solver = require('./solver');
 
 
 var start = function() {
-    var grid = new Grid(14, 9, document.querySelector('#maze'));
+    var grid = new Grid(20, 12, document.querySelector('#maze'));
     var maze = new Maze(grid);
     var solver = new Solver(maze);
 
