@@ -96,3 +96,10 @@ h1 {
     background-color: #666;
     -webkit-transition: width 300ms ease;
 }
+
+.info_container h1 {
+    text-align: left;
+    color: #fdfdfd;
+    margin-bottom: 1em;
+    border-bottom-color: #fdfdfd;
+}

@@ -281,7 +281,7 @@ window.solvers = [];
 
 var setup = function() {
     var info = new Info({
-        text: "PUT STUFF HERE",
+        url: 'README.md',
         keyTrigger: true,
         container: 'wrapper'
     });
@@ -476,12 +476,12 @@ function Solver(maze) {
     this.onPlay = function(){};
 
     _.defaults(this, {
-        'explore': 1.0,
+        'explore': 0.1,
         'alpha': 0.5,
         'discount': 0.8,
-        'decay': 0.9994,
+        'decay': 0.9997,
         'initial': -10,
-        'trainingThreshold': 8, // number of consecutive occurences to stop training
+        'trainingThreshold': 6, // number of consecutive occurences to stop training
         'rewards': {
             'step': -10,
             'finished': 0

@@ -14,7 +14,7 @@ window.solvers = [];
 
 var setup = function() {
     var info = new Info({
-        text: "PUT STUFF HERE",
+        url: 'README.md',
         keyTrigger: true,
         container: 'wrapper'
     });
