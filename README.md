@@ -3,7 +3,7 @@ Maze
 
 I started on this little project as I was reviewing some work I had done on [another reinforcement learning project](https://github.com/rolyatmax/tictactoe). This project applies the same reinforcement learning (RL) concepts to maze learning as the solver attempts to find the shortest path from the top left corner to the bottom right corner of the maze.
 
-While other algorithms will be much faster at solving static mazes, this solving algorithm is notable for how it stores its state. The solver's "knowledge" is represented by values associated with location-decision pairs.
+While other algorithms will be much faster at solving static mazes (a brute-force method would be faster, for example), this solving algorithm is notable for how it stores its state. The solver's "knowledge" is represented by values associated with location-decision pairs.
 
 For each location in the maze, there are one or more moves the solver can make to progress through the maze. After each move, the solver receives a reward (or in this case a punishment). Then, taking the reward into account along with the best move from the new location, the solver evaluates its last decision by updating its location-decision value.
 
