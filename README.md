@@ -24,7 +24,7 @@ Finally, I've tried to visualize the policy with the "Toggle policy values" butt
 To run this project yourself, just clone the repo and run from the root:
 
     npm install
-    browserify js/main.js > js/build.js
+    npm run build
     open index.html
 
 ------------------------
